@@ -361,9 +361,12 @@ function renderList(){
   const t = i => `data-t="${esc(i.title)}"`;
   const del = i => `<button ${t(i)} data-k="del" title="Убрать" aria-label="Убрать">${IC("x")}</button>`;
   const yr = i => i.year?` <span class="yr">${esc(i.year)}</span>`:"";
-  const open = k => openGroups.has(k)?"open":"";
+  const q = norm(($("#listQ")||{}).value||"");
+  const hit = i => !q || norm([i.title,i.author,i.note,i.original].filter(Boolean).join(" ")).includes(q);
+  const open = k => (q || openGroups.has(k))?"open":"";
   $("#lists").innerHTML = groups.map(([k,name])=>{
-    const arr = state.items.filter(i=>i.verdict===k);
+    const arr = state.items.filter(i=>i.verdict===k && hit(i));
+    if(q && !arr.length) return "";
     let body;
     if(!arr.length && k!=="later"){
       body = `<div class="empty">${EMPTY[k]}</div>`;
@@ -385,8 +388,9 @@ function renderList(){
         <div class="mini">${del(i)}</div></div>`).join("");
     }
     return `<details class="sec fold" data-g="${k}" ${open(k)}><summary><h2>${name} <small>${arr.length||""}</small>${ARR}</h2></summary>${body}</details>`;
-  }).join("");
+  }).join("") || `<div class="empty" style="margin-top:12px">По запросу «${esc($("#listQ").value.trim())}» ничего не нашлось</div>`;
 }
+$("#listQ").addEventListener("input", () => renderList());
 $("#lists").addEventListener("toggle",e=>{
   const d=e.target; if(!d.dataset||!d.dataset.g) return;
   d.open ? openGroups.add(d.dataset.g) : openGroups.delete(d.dataset.g);
@@ -615,7 +619,7 @@ document.addEventListener("touchend", e => { const n = Date.now(); if(n - lastTo
         const safe = parseFloat(getComputedStyle(d.querySelector("summary")).top) || 6;
         const top = d.getBoundingClientRect().top + window.scrollY - safe;
         // поднимаем, только если раскрытое не помещается на экране
-        if(d.getBoundingClientRect().bottom > window.innerHeight) window.scrollTo({top, behavior: "smooth"});
+        if(d.id === "adminLink" || d.getBoundingClientRect().bottom > window.innerHeight) window.scrollTo({top, behavior: "smooth"});
       });
     } else if(d.dataset.backY){
       const y = +d.dataset.backY; delete d.dataset.backY;
