@@ -364,7 +364,7 @@ function rateRow(i){
   const t = `data-t="${esc(i.title)}"`;
   return `<div class="rate"><span>Как вам?</span><button ${t} data-k="fin-up">${IC("up")}Понравилось</button><button ${t} data-k="fin-down">${IC("down")}Не зашло</button></div>`;
 }
-const EMPTY = {"watching": "Отметьте сериал «Смотрю», и здесь будут сезон и серия", "liked": "Здесь будет то, что понравилось", "disliked": "Здесь будет то, что не понравилось. Такое больше не предложу", "seen": "Здесь будет то, что уже видели"};
+const EMPTY = {"watching": "Здесь будет то, что вы сейчас смотрите", "liked": "Здесь будет то, что понравилось", "disliked": "Здесь будет то, что не понравилось. Такое больше не предложу", "seen": "Здесь будет то, что уже видели"};
 
 function renderList(){
   const later = state.items.filter(i=>i.verdict==="later").length;
@@ -387,9 +387,7 @@ function renderList(){
       body = arr.map(i=>`
       <div class="row watch"><div class="top"><div class="t"><b>${esc(i.title)}</b>${i.note?`<div>${esc(i.note)}</div>`:""}</div>
         <div class="mini">${del(i)}</div></div>
-        <div class="prog">${i.kind==="series" ? `<span class="pv">Сезон ${i.season||1} · Серия ${i.episode||1}</span>
-          <button ${t(i)} data-k="ep-" aria-label="Минус серия">−</button><button ${t(i)} data-k="ep+">+ серия</button><button ${t(i)} data-k="s+">Новый сезон</button>` : `<span class="pv">Фильм</span>`}
-          <button class="fin" ${t(i)} data-k="ask">${IC("check")}Досмотрел</button></div>${asking.has(norm(i.title))?rateRow(i):""}</div>`).join("");
+        <div class="prog"><button class="fin" ${t(i)} data-k="ask">${IC("check")}Досмотрел</button></div>${asking.has(norm(i.title))?rateRow(i):""}</div>`).join("");
     } else if(k==="later"){
       body = arr.length ? arr.map(i=>`<div class="row stack"><div class="top"><div class="t"><b>${esc(i.title)}</b>${yr(i)}
         <div>${KIND[i.kind]||""}${i.note?" · "+esc(i.note):""}${i.hook?" · "+esc(i.hook):""}</div></div>
