@@ -34,6 +34,7 @@ const P = {
   plus:'<path d="M12 5v14M5 12h14"/>',
   dice:'<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor"/>',
   film:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v18M17 3v18M3 7.5h4M3 12h18M3 16.5h4M17 7.5h4M17 16.5h4"/>',
+  heart:'<path d="M12 20s-7-4.4-9.2-8.6C1.3 8.5 2.9 5 6.3 5c2 0 3.2 1.1 3.9 2.1L12 9l1.8-1.9C14.5 6.1 15.7 5 17.7 5c3.4 0 5 3.5 3.5 6.4C19 15.6 12 20 12 20z"/>',
   chev:'<path d="M6 9l6 6 6-6"/>',
   share:'<path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/>',
   squarePlus:'<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M12 8v8M8 12h8"/>',
@@ -244,8 +245,21 @@ async function pick(surprise){
     if(!current.length) $("#results").innerHTML = `<div class="status">${aiError(e)}</div>`;
   }finally{
     busy=false; picking=false; $("#go").disabled = $("#surprise").disabled = false;
-    if(current.length) renderResults();
+    if(current.length){ countPick(); renderResults(); }
   }
+}
+/* «Нравятся подборки?» — иногда под результатами: после 10 удачных подборов,
+   и снова не раньше чем через 30 дней после того, как человек закрыл карточку или нажал «Поблагодарить». */
+const THANKS_KEY = APP + ".thanksCard", PICKS_KEY = APP + ".picksDone";
+function countPick(){ try{ localStorage.setItem(PICKS_KEY, String((+localStorage.getItem(PICKS_KEY) || 0) + 1)); }catch(e){} }
+function maybeThanksCard(){
+  const link = $("#thanksLink"); if(!link || link.classList.contains("hidden")) return;
+  let picks = 0, last = 0;
+  try{ picks = +localStorage.getItem(PICKS_KEY) || 0; last = +localStorage.getItem(THANKS_KEY) || 0; }catch(e){}
+  if(picks < 10 || Date.now() - last < 30 * 864e5) return;
+  $("#results").insertAdjacentHTML("beforeend", `<div class="thanks-card">${IC("heart")}<div class="tc-t"><b>Нравятся подборки?</b><p>Можно поблагодарить автора. Это помогает приложению работать дальше.</p><a href="${esc(link.href)}" target="_blank" rel="noopener" id="tcGo">Поблагодарить</a></div><button class="tc-x" id="tcX" aria-label="Закрыть">${IC("x")}</button></div>`);
+  const done = () => { try{ localStorage.setItem(THANKS_KEY, String(Date.now())); }catch(e){} const c=$(".thanks-card"); if(c) c.remove(); };
+  $("#tcX").onclick = done; $("#tcGo").addEventListener("click", () => setTimeout(done, 300));
 }
 $("#go").onclick=()=>pick(false);
 $("#surprise").onclick=()=>pick(true);
@@ -283,6 +297,7 @@ function renderResults(){
   $("#results").innerHTML = current.map((x,i)=>card(x,i,"r")).join("") + (picking ? `<div class="status"><span class="dots">Подбираю ещё</span></div>` : `<div class="btns"><button class="btn ghost" style="flex:1" id="more">Не то, ещё варианты</button></div>
   ${AI.leftToday !== null && AI.leftToday <= 5 ? `<div class="note left-note">${AI.leftToday ? "Сегодня осталось подборов: " + AI.leftToday : "На сегодня подборы закончились"}</div>` : ""}
   <div class="note">Видели? Отметьте «Понравилось» или «Не моё». Чем больше отметок, тем точнее подборка.</div>`);
+  if(!picking) maybeThanksCard();
   const mb=$("#more"); if(mb) mb.onclick=()=>pick(current.length===1);
 }
 
