@@ -68,8 +68,7 @@ function setVerdict(rec, verdict){
           note:rec.note||"", hook:rec.hook||"", actors:rec.actors||""};
     state.items.unshift(it);
   }
-  if(verdict==="watching"){
-    it.kind="series";
+  if(verdict==="watching" && it.kind==="series"){
     if(rec.season) it.season=+rec.season;
     if(rec.episode) it.episode=+rec.episode;
     if(!it.season) it.season=1;
@@ -365,13 +364,13 @@ function renderList(){
       body = arr.map(i=>`
       <div class="row watch"><div class="top"><div class="t"><b>${esc(i.title)}</b>${i.note?`<div>${esc(i.note)}</div>`:""}</div>
         <div class="mini">${del(i)}</div></div>
-        <div class="prog"><span class="pv">Сезон ${i.season||1} · Серия ${i.episode||1}</span>
-          <button ${t(i)} data-k="ep-" aria-label="Минус серия">−</button><button ${t(i)} data-k="ep+">+ серия</button><button ${t(i)} data-k="s+">Новый сезон</button>
+        <div class="prog">${i.kind==="series" ? `<span class="pv">Сезон ${i.season||1} · Серия ${i.episode||1}</span>
+          <button ${t(i)} data-k="ep-" aria-label="Минус серия">−</button><button ${t(i)} data-k="ep+">+ серия</button><button ${t(i)} data-k="s+">Новый сезон</button>` : `<span class="pv">Фильм</span>`}
           <button class="fin" ${t(i)} data-k="ask">${IC("check")}Досмотрел</button></div>${asking.has(norm(i.title))?rateRow(i):""}</div>`).join("");
     } else if(k==="later"){
       body = arr.length ? arr.map(i=>`<div class="row stack"><div class="top"><div class="t"><b>${esc(i.title)}</b>${yr(i)}
         <div>${KIND[i.kind]||""}${i.note?" · "+esc(i.note):""}${i.hook?" · "+esc(i.hook):""}</div></div>
-        <div class="mini">${i.kind==="series"?`<button ${t(i)} data-k="watching" class="start" title="Перенести в «Смотрю сейчас»"><span>Начать</span></button>`:`<button ${t(i)} data-k="ask" class="start" title="Отметить, как понравилось">Посмотрел</button>`}${del(i)}</div></div>${asking.has(norm(i.title))?rateRow(i):""}${links(i,true)}</div>`).join("")
+        <div class="mini"><button ${t(i)} data-k="watching" class="start" title="Перенести в «Смотрю сейчас»"><span>Начать</span></button>${del(i)}</div></div>${asking.has(norm(i.title))?rateRow(i):""}${links(i,true)}</div>`).join("")
         : `<div class="empty">Пока пусто. Добавляйте из подборок или то, что посоветовали</div>`;
     } else {
       body = arr.map(i=>`<div class="row"><div class="t"><b>${esc(i.title)}</b>${yr(i)}
