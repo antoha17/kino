@@ -99,3 +99,9 @@ select cron.schedule('kk-backup', '17 3 * * 0', $cron$ select public.make_backup
 
 -- Первая копия сразу.
 select public.make_backup();
+
+-- Серверным функциям (ai, news) нужен доступ к настройкам: при создании проекта
+-- автоматическая выдача прав новым таблицам была выключена, поэтому выдаём явно.
+grant select on public.app_settings to service_role;
+grant select, insert on public.usage to service_role;
+grant select, insert, delete on public.news to service_role;
