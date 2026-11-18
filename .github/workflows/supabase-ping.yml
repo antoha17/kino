@@ -1,0 +1,41 @@
+# «Проверка пульса»: бесплатный проект Supabase засыпает, если неделю к нему никто не обращался.
+# Этот сценарий раз в три дня сам обращается к проекту, чтобы он не уснул.
+# Запустить вручную: вкладка Actions → «Пинг Supabase» → Run workflow.
+name: Пинг Supabase
+
+on:
+  schedule:
+    - cron: "17 6 */3 * *"   # каждые 3 дня в 06:17 UTC (09:17 по Москве)
+  workflow_dispatch:
+
+permissions:
+  actions: write   # чтобы продлевать жизнь этому сценарию (см. последний шаг)
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Обратиться к Supabase
+        env:
+          URL: https://ipqcqexoymvfoxejypyr.supabase.co
+          KEY: sb_publishable_vt-_BHI13a_lgHbYJ4Hj8Q_JZnVFMRp   # публичный ключ, не секрет
+        run: |
+          set -u
+          ok=0
+          for i in 1 2 3; do
+            # запрос к базе (ответ «нет доступа» — нормально: главное, что база ответила)
+            db=$(curl -s -o /dev/null -w '%{http_code}' -m 30 "$URL/rest/v1/items?select=norm&limit=1" -H "apikey: $KEY" || true)
+            auth=$(curl -s -o /dev/null -w '%{http_code}' -m 30 "$URL/auth/v1/settings" -H "apikey: $KEY" || true)
+            echo "Попытка $i: база ответила $db, вход ответил $auth"
+            if [ "$db" != "000" ] && [ "$auth" = "200" ]; then ok=1; break; fi
+            sleep 20
+          done
+          if [ "$ok" != 1 ]; then echo "::error::Supabase не отвечает. Возможно, проект на паузе: откройте supabase.com и нажмите Restore project."; exit 1; fi
+
+      - name: Не дать GitHub отключить этот сценарий
+        # GitHub отключает расписание, если в репозитории 60 дней не было изменений.
+        # Повторное «включение» сбрасывает этот счётчик.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/supabase-ping.yml/enable" && echo "Сценарий продлён"
