@@ -628,6 +628,18 @@ document.addEventListener("touchend", e => { const n = Date.now(); if(n - lastTo
   }, true);
 })();
 
+/* «Новинки недели»: общие на всех, обновляются сервером по пятницам */
+const NEWS_KEY = "kino.news";
+try{ news = JSON.parse(localStorage.getItem(NEWS_KEY) || "null"); }catch(e){}
+window.onLogin = async sb => {
+  try{
+    const {data, error} = await sb.rpc("public_news", {a: "kino"});
+    if(error || !data) return;
+    news = data; try{ localStorage.setItem(NEWS_KEY, JSON.stringify(data)); }catch(e){}
+    renderNews();
+  }catch(e){}
+};
+
 /* ---------- запуск ---------- */
 function renderAll(){ $("#profile").value = state.profile; renderList(); renderNews(); }
 $("#surprise").innerHTML = IC("dice") + "<span>Удиви</span>";

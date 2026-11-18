@@ -20,7 +20,7 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
-      - name: Выложить функцию ai
+      - name: Выложить функции ai и news
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -30,3 +30,4 @@ jobs:
           fi
           # Проверку входа делает сама функция (auth.getUser), поэтому --no-verify-jwt.
           supabase functions deploy ai --project-ref ipqcqexoymvfoxejypyr --no-verify-jwt --yes
+          supabase functions deploy news --project-ref ipqcqexoymvfoxejypyr --no-verify-jwt --yes
