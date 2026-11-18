@@ -319,17 +319,30 @@ function nextFriday(){
   const d=new Date(); d.setDate(d.getDate()+((5-d.getDay()+7)%7));
   return d.toLocaleDateString("ru-RU",{day:"numeric",month:"long"});
 }
+// «Где смотреть» коротко: без ссылок и пояснений, только название сервиса
+const shortWhere = w => String(w||"").replace(/\(\s*\[[^\]]*\]\([^)]*\)\s*\)/g,"").replace(/\[([^\]]*)\]\([^)]*\)/g,"$1").replace(/https?:\/\/\S+/g,"").split(/\s[—–-]\s|[.;(]/)[0].trim();
+// «Новинки недели» — компактная полоска: название, тип и где смотреть. Нажатие раскрывает завязку.
+const newsHidden = new Set(JSON.parse((()=>{ try{ return localStorage.getItem("kino.newsHidden")||"[]"; }catch(e){ return "[]"; } })()));
 function renderNews(){
   const el=$("#news");
-  if(!news || !news.items || !news.items.length){
-    el.innerHTML = `<div class="newswrap"><div class="newshead"><h2>${IC("spark")}Новинки недели</h2></div>
-      <div class="empty">Каждую пятницу здесь будут 3–4 свежих фильма и сериала. Ближайшая пятница: ${nextFriday()}.</div></div>`;
-    return;
-  }
-  const list = news.items.map((x,i)=>{x.kind=x.kind==="series"?"series":"film";return [x,i]}).filter(([x])=>!findItem(x.title));
-  el.innerHTML = `<div class="newswrap"><div class="newshead"><h2>${IC("spark")}Новинки недели</h2><small>${esc(news.week||"")}</small></div>
-    ${list.length ? list.map(([x,i])=>card(x,i,"n")).join("") : `<div class="empty">Все новинки недели отмечены. Новые будут в пятницу.</div>`}</div>`;
+  if(!news || !news.items || !news.items.length){ el.innerHTML=""; return; }
+  const list = news.items.map((x,i)=>{x.kind=x.kind==="series"?"series":"film";return [x,i]}).filter(([x])=>!findItem(x.title) && !newsHidden.has(norm(x.title)));
+  if(!list.length){ el.innerHTML=""; return; }
+  el.innerHTML = `<details class="news-box" ${newsOpen?"open":""}><summary><span class="nh">${IC("spark")}Новинки недели</span><small>${esc(news.week||"")}</small>${ARR}</summary>
+    ${list.map(([x,i])=>`<div class="news-row">
+      <div class="nt"><b>${esc(x.title)}</b><span>${[KIND[x.kind], x.genre, shortWhere(x.where)].filter(Boolean).map(esc).join(" · ")}</span>
+        ${x.hook?`<p>${esc(x.hook)}</p>`:""}</div>
+      <div class="na"><button class="act-mini" data-n="${i}" data-k="later" title="Посмотреть позже">${IC("clock")}Позже</button><button class="act-mini x" data-n="${i}" data-k="hide" title="Не интересно" aria-label="Не интересно">${IC("x")}</button></div>
+    </div>`).join("")}</details>`;
 }
+let newsOpen = false;
+$("#news").addEventListener("toggle", e => { if(e.target.classList.contains("news-box")) newsOpen = e.target.open; }, true);
+$("#news").addEventListener("click", e => {
+  const b = e.target.closest(".act-mini"); if(!b) return;
+  const x = news.items[+b.dataset.n]; if(!x) return;
+  if(b.dataset.k === "hide"){ newsHidden.add(norm(x.title)); try{ localStorage.setItem("kino.newsHidden", JSON.stringify([...newsHidden].slice(-60))); }catch(e){} renderNews(); return; }
+  setVerdict(x, "later"); toast("Добавил в «Посмотреть позже»"); renderNews();
+});
 
 function onAct(e){
   const b=e.target.closest(".act");if(!b)return;
@@ -342,7 +355,6 @@ function onAct(e){
   setTimeout(()=>{ if(src==="r") current=current.filter(y=>y!==x); renderResults(); renderNews(); },260);
 }
 $("#results").addEventListener("click",onAct);
-$("#news").addEventListener("click",onAct);
 
 /* ---------- мой список ---------- */
 // После «Досмотрел / Дочитал / Посмотрел» спрашиваем: понравилось или нет.
@@ -638,6 +650,15 @@ window.onLogin = async sb => {
     news = data; try{ localStorage.setItem(NEWS_KEY, JSON.stringify(data)); }catch(e){}
     renderNews();
   }catch(e){}
+};
+
+/* Инструкция: открывается прямо в приложении (картинки страниц), без перехода во внешний просмотрщик */
+$("#helpBtn").onclick = () => {
+  const box = document.createElement("div"); box.className = "help-view";
+  box.innerHTML = [1,2,3].map(n => `<img src="help/p-${n}.jpg" alt="Инструкция, страница ${n}" loading="lazy">`).join("") +
+    `<button class="help-close" aria-label="Закрыть">${IC("x")}</button>`;
+  document.body.appendChild(box); document.body.style.overflow = "hidden";
+  box.querySelector(".help-close").onclick = () => { box.remove(); document.body.style.overflow = ""; };
 };
 
 /* ---------- запуск ---------- */

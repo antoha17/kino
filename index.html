@@ -42,6 +42,12 @@ h1 span{color:var(--accent)}
 .top-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .info-btn{flex-shrink:0;width:36px;height:36px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--muted);display:flex;align-items:center;justify-content:center}
 .info-btn svg{width:20px;height:20px}
+.info-btn{cursor:pointer;padding:0}
+/* инструкция внутри приложения */
+.help-view{position:fixed;inset:0;z-index:40;background:#0f0d12;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.help-view img{display:block;width:100%;max-width:820px;margin:0 auto;height:auto}
+.help-close{position:fixed;top:calc(env(safe-area-inset-top) + 10px);right:14px;z-index:41;width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:rgba(26,23,32,.92);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.help-close .ic{width:20px;height:20px}
 .tabs{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;margin:20px 0 18px}
 .tab{flex:1;border:0;background:transparent;color:var(--muted);font:600 15px Manrope,system-ui,sans-serif;padding:10px;border-radius:10px;cursor:pointer}
 .tab.on{background:var(--panel2);color:var(--text)}
@@ -122,6 +128,24 @@ textarea{min-height:110px;resize:vertical}
 .newshead h2{font:700 17px Manrope,system-ui,sans-serif;display:flex;align-items:center;gap:8px}
 .newshead h2 .ic{width:19px;height:19px;color:var(--accent)}
 .newshead small{color:var(--muted);font-size:12px}
+.news-box{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin-bottom:6px}
+.news-box>summary{list-style:none;display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer}
+.news-box>summary::-webkit-details-marker{display:none}
+.news-box .nh{display:flex;align-items:center;gap:8px;font:700 15px Manrope,system-ui,sans-serif;flex:1}
+.news-box .nh .ic{width:18px;height:18px;color:var(--accent)}
+.news-box small{color:var(--muted);font-size:12px}
+.news-box .arr{display:flex;color:var(--muted);transition:transform .2s}
+.news-box .arr .ic{width:18px;height:18px}
+.news-box[open] .arr{transform:rotate(180deg)}
+.news-row{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-top:1px solid var(--line)}
+.news-row .nt{flex:1;min-width:0}
+.news-row b{font-weight:700;font-size:14.5px}
+.news-row span{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.news-row p{color:var(--text);opacity:.85;font-size:13px;margin-top:4px;line-height:1.4}
+.news-row .na{display:flex;gap:4px;flex-shrink:0}
+.act-mini{display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 9px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font:600 12.5px Manrope,system-ui,sans-serif;cursor:pointer}
+.act-mini .ic{width:14px;height:14px;color:var(--accent)}
+.act-mini.x{padding:0 7px}.act-mini.x .ic{color:var(--muted)}
 .newswrap{margin-bottom:10px;padding-bottom:16px;border-bottom:1px solid var(--line)}
 .prog{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap}
 .prog .pv{font:700 14px Manrope,system-ui,sans-serif;color:var(--accent);min-width:92px}
@@ -299,7 +323,7 @@ details.fold[open] .adm-fold[open]>summary .arr,.adm-fold[open]>summary .arr{tra
 <div class="wrap">
   <div class="top-row">
     <h1>Что <span>посмотреть</span></h1>
-    <a class="info-btn" href="help.pdf" target="_blank" rel="noopener" title="Как пользоваться" aria-label="Как пользоваться"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.6" r=".6" fill="currentColor"/></svg></a>
+    <button class="info-btn" id="helpBtn" title="Как пользоваться" aria-label="Как пользоваться"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.6" r=".6" fill="currentColor"/></svg></button>
   </div>
 
   <section id="gate"></section>
