@@ -1,0 +1,24 @@
+<svg viewBox="0 0 260 210" width="68mm">
+          <circle cx="130" cy="120" r="88" fill="#5ee0b0" opacity=".08"/>
+          <!-- stack -->
+          <g transform="translate(40 92)">
+            <rect x="6" y="76" width="140" height="26" rx="4" fill="#1d4a3f"/><rect x="6" y="76" width="12" height="26" fill="#2a6b5a"/><rect x="128" y="80" width="14" height="18" rx="2" fill="#f3eee6" opacity=".9"/>
+            <rect x="16" y="50" width="128" height="26" rx="4" fill="url(#gG)"/><rect x="16" y="50" width="12" height="26" fill="#2f9a86"/><rect x="40" y="60" width="70" height="4" rx="2" fill="#0f2f28" opacity=".5"/>
+            <rect x="0" y="24" width="134" height="26" rx="4" fill="#2a2433"/><rect x="0" y="24" width="12" height="26" fill="#3a3344"/><rect x="24" y="34" width="60" height="4" rx="2" fill="#5ee0b0" opacity=".7"/>
+            <!-- open book on top -->
+            <g transform="translate(14 -36)">
+              <path d="M54 54C40 44 20 42 0 46V6C20 2 40 4 54 14z" fill="#f3eee6"/>
+              <path d="M54 54C68 44 88 42 108 46V6C88 2 68 4 54 14z" fill="#e6ded0"/>
+              <path d="M54 14v40" stroke="#c9bfae" stroke-width="2"/>
+              <g stroke="#b5ab9a" stroke-width="2.4" stroke-linecap="round"><path d="M10 16c12-2 22-1 34 4M10 26c12-2 22-1 34 4M10 36c12-2 22-1 34 4"/><path d="M64 20c12-5 22-6 34-4M64 30c12-5 22-6 34-4M64 40c12-5 22-6 34-4"/></g>
+              <path d="M84 2v26l6-5 6 5V0" fill="#ff6b5b"/>
+            </g>
+          </g>
+          <!-- headphones -->
+          <g transform="translate(168 34)" fill="none">
+            <path d="M8 58V40a32 32 0 0 1 64 0v18" stroke="#5ee0b0" stroke-width="7" stroke-linecap="round"/>
+            <rect x="0" y="50" width="18" height="30" rx="7" fill="#5ee0b0"/><rect x="62" y="50" width="18" height="30" rx="7" fill="#5ee0b0"/>
+            <path d="M24 104q8 -10 16 0t16 0" stroke="#38b6d6" stroke-width="3" stroke-linecap="round" opacity=".8"/>
+          </g>
+          <g fill="#5ee0b0"><path d="M30 34l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/><circle cx="150" cy="28" r="3" opacity=".6"/><path d="M236 150l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" opacity=".7"/></g>
+        </svg>
