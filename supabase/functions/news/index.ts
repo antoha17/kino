@@ -41,52 +41,67 @@ Deno.serve(async (req) => {
   }
   if (!ok) return json(403, { code: "forbidden" });
 
+  // Записываем итог в news (app = "status"), чтобы владелец увидел, чем закончилось.
+  const status = async (msg: string) => {
+    await sb.from("news").delete().eq("app", "status");
+    await sb.from("news").insert({ app: "status", week: msg.slice(0, 400), items: [] });
+  };
+  const job = async () => {
   const model = PRICES[s.ai_model] ? s.ai_model : "gpt-6.2-sol";
-  const today = new Date().toISOString().slice(0, 10);
-  const prompt = `Сегодня ${today}. Найди в интернете 6 фильмов и сериалов, которые вышли за последние 10 дней или выходят на этой неделе: в кинотеатрах России или в российских онлайн-кинотеатрах (Кинопоиск, Okko, Иви, Wink, Start, Premier, KION) — новые фильмы, новые сериалы или новые сезоны. Выбирай то, что обсуждают и что хорошо оценивают, разных жанров. Только реально вышедшее, проверь даты.
+    const today = new Date().toISOString().slice(0, 10);
+    const prompt = `Сегодня ${today}. Найди в интернете 6 фильмов и сериалов, которые вышли за последние 10 дней или выходят на этой неделе: в кинотеатрах России или в российских онлайн-кинотеатрах (Кинопоиск, Okko, Иви, Wink, Start, Premier, KION) — новые фильмы, новые сериалы или новые сезоны. Выбирай то, что обсуждают и что хорошо оценивают, разных жанров. Только реально вышедшее, проверь даты.
 
 Ответь строго по одному JSON-объекту на строку, без массива и без текста вокруг. Внутри строк не используй прямые кавычки ", только «ёлочки». Формат:
 {"title":"название в российском прокате","original":"оригинальное название","year":2026,"kind":"film или series","genre":"жанр коротко","actors":"2-3 актёра","length":"например 1 ч 50 мин или 8 серий","hook":"завязка в одном предложении без спойлеров","where":"где смотреть: кинотеатры или название онлайн-кинотеатра"}`;
 
-  const base = Deno.env.get("OPENAI_BASE_URL") || "https://api.openai.com";
-  const r = await fetch(base + "/v1/responses", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model, tools: [{ type: "web_search" }], input: prompt, max_output_tokens: 4000 }),
-  });
-  if (!r.ok) {
-    const detail = (await r.text()).slice(0, 500);
-    console.error("openai", r.status, detail);
-    return json(502, { code: "provider", detail });
-  }
-  const j = await r.json();
-  let text = typeof j.output_text === "string" ? j.output_text : "";
-  if (!text && Array.isArray(j.output)) {
-    for (const o of j.output) for (const c of (o.content || [])) if (c.type === "output_text" && c.text) text += c.text + "\n";
-  }
-  const items: Record<string, unknown>[] = [];
-  const seen = new Set<string>();
-  for (const raw of text.split("\n")) {
-    const line = raw.trim().replace(/^```(json)?/, "").replace(/```$/, "").replace(/,\s*$/, "");
-    const a = line.indexOf("{"), b = line.lastIndexOf("}");
-    if (a < 0 || b < a) continue;
-    try {
-      const x = JSON.parse(line.slice(a, b + 1));
-      const n = norm(x.title);
-      if (!n || seen.has(n)) continue;
-      seen.add(n); x.kind = x.kind === "series" ? "series" : "film"; items.push(x);
-    } catch { /* битая строка */ }
-    if (items.length >= 4) break;
-  }
-  const u = j.usage || {};
-  const [pi, po] = PRICES[model];
-  await sb.from("usage").insert({ user_id: null, app: "kino", kind: "news", model,
-    in_tokens: u.input_tokens || 0, out_tokens: u.output_tokens || 0,
-    cost_usd: ((u.input_tokens || 0) * pi + (u.output_tokens || 0) * po) / 1e6 });
-  if (!items.length) return json(502, { code: "empty" });
+    const base = Deno.env.get("OPENAI_BASE_URL") || "https://api.openai.com";
+    const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 140000);
+    let r: Response;
+    try { r = await fetch(base + "/v1/responses", {
+      method: "POST", signal: ctl.signal,
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model, tools: [{ type: "web_search" }], input: prompt, max_output_tokens: 4000 }),
+    }); } catch (e) { return status(ctl.signal.aborted ? "поиск занял слишком долго" : "нет связи с OpenAI"); } finally { clearTimeout(timer); }
+    if (!r.ok) {
+      const detail = (await r.text()).slice(0, 300);
+      console.error("openai", r.status, detail);
+      return status(`ошибка OpenAI ${r.status}: ${detail}`);
+    }
+    const j = await r.json();
+    let text = typeof j.output_text === "string" ? j.output_text : "";
+    if (!text && Array.isArray(j.output)) {
+      for (const o of j.output) for (const c of (o.content || [])) if (c.type === "output_text" && c.text) text += c.text + "\n";
+    }
+    const items: Record<string, unknown>[] = [];
+    const seen = new Set<string>();
+    for (const raw of text.split("\n")) {
+      const line = raw.trim().replace(/^```(json)?/, "").replace(/```$/, "").replace(/,\s*$/, "");
+      const a = line.indexOf("{"), b = line.lastIndexOf("}");
+      if (a < 0 || b < a) continue;
+      try {
+        const x = JSON.parse(line.slice(a, b + 1));
+        const n = norm(x.title);
+        if (!n || seen.has(n)) continue;
+        seen.add(n); x.kind = x.kind === "series" ? "series" : "film"; items.push(x);
+      } catch { /* битая строка */ }
+      if (items.length >= 4) break;
+    }
+    const u = j.usage || {};
+    const [pi, po] = PRICES[model];
+    await sb.from("usage").insert({ user_id: null, app: "kino", kind: "news", model,
+      in_tokens: u.input_tokens || 0, out_tokens: u.output_tokens || 0,
+      cost_usd: ((u.input_tokens || 0) * pi + (u.output_tokens || 0) * po) / 1e6 });
+    if (!items.length) return status("ИИ не вернул ни одной новинки");
 
-  await sb.from("news").insert({ app: "kino", week: weekLabel(), items });
-  // старые подборки старше двух месяцев не нужны
-  await sb.from("news").delete().lt("created_at", new Date(Date.now() - 60 * 864e5).toISOString());
-  return json(200, { ok: true, count: items.length, week: weekLabel() });
+    await sb.from("news").insert({ app: "kino", week: weekLabel(), items });
+    // старые подборки старше двух месяцев не нужны
+    await sb.from("news").delete().lt("created_at", new Date(Date.now() - 60 * 864e5).toISOString());
+    await status(`готово: ${items.length} новинки`);
+  };
+  // Поиск в интернете может идти до пары минут: отвечаем сразу, а работа идёт в фоне.
+  const run = job().catch(async (e) => { console.error("news job", e); await status("ошибка: " + String(e).slice(0, 200)); });
+  // @ts-ignore: EdgeRuntime есть в Supabase
+  if (typeof EdgeRuntime !== "undefined") { EdgeRuntime.waitUntil(run); return json(202, { started: true }); }
+  await run;
+  return json(200, { started: true });
 });

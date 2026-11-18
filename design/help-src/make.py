@@ -66,8 +66,9 @@ APPS = {
 CSS = '''
 @page{size:A4;margin:0}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-body{font-family:Manrope,sans-serif;color:#f3eee6;background:#0f0d12}
-.page{width:210mm;height:297mm;position:relative;overflow:hidden;padding:16mm 15mm;page-break-after:always;
+html,body{background:#0f0d12}
+body{font-family:Manrope,sans-serif;color:#f3eee6}
+.page{width:210mm;height:296.8mm;break-inside:avoid;position:relative;overflow:hidden;padding:16mm 15mm;page-break-after:always;
   background:radial-gradient(80% 32% at 90% 0%,var(--glow) 0%,transparent 70%),#0f0d12}
 .page:last-child{page-break-after:auto}
 h1,h2,h3{font-family:Unbounded,sans-serif;font-weight:600;letter-spacing:-.02em}

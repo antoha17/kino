@@ -2,7 +2,7 @@ const { chromium } = require('playwright'); const S=process.argv[2];
 (async()=>{const b=await chromium.launch();
 for(const k of ['kino','knigi']){
   const p=await b.newPage(); await p.goto('file://'+S+'/'+k+'.html'); await p.waitForTimeout(500);
-  await p.pdf({path:S+'/'+k+'.pdf',format:'A4',printBackground:true,margin:{top:0,right:0,bottom:0,left:0}});
+  await p.pdf({path:S+'/'+k+'.pdf',width:'210mm',height:'297mm',printBackground:true,preferCSSPageSize:true,margin:{top:0,right:0,bottom:0,left:0}});
   // превью страниц
   await p.setViewportSize({width:794,height:1123});
   const n=await p.$$eval('.page',x=>x.length);
