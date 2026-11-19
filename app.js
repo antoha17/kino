@@ -264,6 +264,18 @@ function maybeThanksCard(){
 }
 $("#go").onclick=()=>pick(false);
 $("#surprise").onclick=()=>pick(true);
+// Кнопка «Подобрать» прилипает к низу экрана; когда прилипла, под ней фон, чтобы не просвечивали чипы.
+(() => {
+  const bar = document.querySelector("#pick > .btns"); if(!bar) return;
+  const check = () => {
+    const r = bar.getBoundingClientRect(), gap = parseFloat(getComputedStyle(bar).bottom) || 10;
+    bar.classList.toggle("stuck", r.height > 0 && r.bottom >= window.innerHeight - gap - 1);
+  };
+  addEventListener("scroll", check, {passive:true}); addEventListener("resize", check);
+  document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => setTimeout(check, 50)));
+  setTimeout(check, 300);
+})();
+
 
 // Значки площадок (простые монограммы в фирменных цветах): ссылка ведёт на поиск по названию.
 const SITES = {
