@@ -4,6 +4,9 @@
 //   2) отправляет запрос в OpenAI моделью, выбранной владельцем в «Статистике»;
 //   3) отдаёт ответ (для подбора — по кусочкам, сразу как он появляется);
 //   4) записывает в журнал usage, сколько это стоило. Текст запросов и ответов не сохраняется.
+//      Подбор записывается сразу, как только OpenAI начал отвечать (с примерной стоимостью):
+//      приложение обрывает ответ, когда набралось 3 варианта, и запись в конце могла не успеть.
+//      В конце, если сервер успевает, добавляется строка-поправка kind = "fix" с разницей до точной стоимости.
 // Секрет OPENAI_API_KEY задаётся в Supabase → Edge Functions → Secrets. В коде ключа нет.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -63,10 +66,10 @@ Deno.serve(async (req) => {
   if (kind === "test" && typeof body.model === "string" && PRICES[body.model]) model = body.model;
   if (!PRICES[model]) return json(500, { code: "bad_model" });
 
-  const log = async (inT: number, outT: number, estimated: boolean) => {
+  const log = async (inT: number, outT: number, estimated: boolean, k: string = kind, usd?: number) => {
     const { error } = await sb.from("usage").insert({
-      user_id: uid, app, kind, model, in_tokens: inT, out_tokens: outT,
-      cost_usd: cost(model, inT, outT), estimated,
+      user_id: uid, app, kind: k, model, in_tokens: inT, out_tokens: outT,
+      cost_usd: usd ?? cost(model, inT, outT), estimated,
     });
     if (error) console.error("usage insert", error);
   };
@@ -112,11 +115,22 @@ Deno.serve(async (req) => {
   const reader = r.body!.getReader();
   const enc = new TextEncoder(), dec = new TextDecoder();
   let buf = "", outChars = 0, usage: { prompt_tokens: number; completion_tokens: number } | null = null, logged = false;
+  // Сразу засчитываем подбор с примерной стоимостью (≈2,5 символа на токен для русского текста, ответ ≈450 токенов).
+  const estIn = Math.ceil(prompt.length / 2.5), estOut = 450;
+  await log(estIn, estOut, true);
   const finish = async () => {
     if (logged) return; logged = true;
-    if (usage) await log(usage.prompt_tokens, usage.completion_tokens, false);
-    // Ответ прервали раньше конца: оцениваем примерно (≈2,5 символа на токен для русского текста).
-    else await log(Math.ceil(prompt.length / 2.5), Math.ceil(outChars / 2.5), true);
+    // Точные цифры, если OpenAI их прислал; иначе (ответ прервали) оценка по тому, что успели получить.
+    const inT = usage ? usage.prompt_tokens : estIn;
+    const outT = usage ? usage.completion_tokens : Math.ceil(outChars / 2.5);
+    const diff = cost(model, inT, outT) - cost(model, estIn, estOut);
+    if (inT !== estIn || outT !== estOut) await log(inT - estIn, outT - estOut, !usage, "fix", diff);
+  };
+  // Поправку дописываем «в фоне», чтобы обрыв со стороны приложения её не прерывал.
+  const finishBg = () => {
+    const p = finish();
+    try { (globalThis as unknown as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime?.waitUntil(p); } catch { /* нет EdgeRuntime — просто ждём */ }
+    return p;
   };
   const out = new ReadableStream<Uint8Array>({
     // Читаем ответ OpenAI, пока не появится текст для приложения (служебные куски без текста пропускаем).
@@ -124,7 +138,7 @@ Deno.serve(async (req) => {
       try {
         for (;;) {
           const { done, value } = await reader.read();
-          if (done) { await finish(); c.close(); return; }
+          if (done) { await finishBg(); c.close(); return; }
           buf += dec.decode(value, { stream: true });
           const lines = buf.split("\n");
           buf = lines.pop() ?? "";
@@ -145,11 +159,11 @@ Deno.serve(async (req) => {
         }
       } catch (e) {
         if (!ctl.signal.aborted) console.error("stream", e);   // прерывание приложением — не ошибка
-        await finish();
+        await finishBg();
         try { c.close(); } catch { /* уже закрыт */ }
       }
     },
-    async cancel() { ctl.abort(); await finish(); },
+    async cancel() { ctl.abort(); await finishBg(); },
   });
   return new Response(out, { headers: { ...headers, "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
 });
