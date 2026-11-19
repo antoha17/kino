@@ -49,7 +49,7 @@ const ARR = `<span class="arr">${IC("chev",2)}</span>`;
 const VERD = {later:"Позже", watching:"Смотрю", liked:"Понравилось", seen:"Видел", disliked:"Не моё"};
 const VIC = {later:"clock", watching:"play", liked:"up", seen:"eye", disliked:"down"};
 
-function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove("show"),2400)}
+function toast(t,ms){const el=$("#toast");el.textContent=t;el.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove("show"),ms||2400)}
 
 /* ---------- хранение ---------- */
 function localLoad(){try{const s=JSON.parse(localStorage.getItem(LS_KEY)||"null");if(s){state.profile=s.profile||"";state.items=s.items||[]}}catch(e){}}
@@ -453,13 +453,23 @@ $("#lists").addEventListener("click",e=>{
 });
 
 /* ---------- быстро добавить (текст; голос — через микрофон на клавиатуре телефона) ---------- */
+// Записи из списка, похожие на фразу (общее слово в названии). Их отдаём ИИ, чтобы он узнал уже добавленное.
+function similarItems(text){
+  // слово сравниваем по первым 5 буквам, чтобы «виновного» нашло «Виновный»
+  const words = t => String(t||"").toLowerCase().replace(/ё/g,"е").split(/[^a-zа-я0-9]+/).filter(w=>w.length>=3).map(w=>w.slice(0,5));
+  const tw = new Set(words(text)), nt = norm(text);
+  return state.items.filter(i => { const n = norm(i.title); return (n.length>=2 && nt.includes(n)) || words(i.title).some(w=>tw.has(w)); }).slice(0,15);
+}
+const SEC_NAME = {watching:"Смотрю сейчас", later:"Посмотреть позже", liked:"Понравилось", disliked:"Не зашло", seen:"Видел"};
 async function quickAdd(){
   const text=$("#quick").value.trim(); if(!text) return;
+  const near = similarItems(text);
+  const nearHint = near.length ? `\nВ его списке уже есть похожие: ${near.map(i=>"«"+i.title+"»").join("; ")}. Если фраза про одну из них, верни её название точно как здесь.` : "";
   const btn=$("#addBtn"); btn.disabled=true; btn.textContent="Сохраняю…";
   let rec=null;
   if(AI.ready()){
     try{
-      const r = await AI.ask(`Человек ведёт личный список фильмов и сериалов. Он написал или надиктовал фразу: «${text}».
+      const r = await AI.ask(`Человек ведёт личный список фильмов и сериалов. Он написал или надиктовал фразу: «${text}».${nearHint}
 Определи, о каком фильме или сериале речь, и что он хочет отметить.
 Ответь только JSON-объектом без текста вокруг:
 {"title":"название как в российском прокате (исправь опечатки и ошибки распознавания речи)","year":2014,"kind":"film или series","verdict":"later (посоветовали / хочу посмотреть) | watching (начал смотреть сериал) | liked (посмотрел, понравилось) | disliked (не понравилось)","season":null,"episode":null,"note":"кто посоветовал или короткая заметка из фразы, иначе пустая строка"}`, {kind:"quick"});
@@ -468,10 +478,17 @@ async function quickAdd(){
   }
   if(!rec || !rec.title) rec = {title:text.replace(/^[«"]|[»"]$/g,""), verdict:"later", kind:"film"};
   const v = ["later","watching","liked","disliked"].includes(rec.verdict)?rec.verdict:"later";
-  setVerdict(rec, v);
+  const old = findItem(rec.title), was = old && old.verdict;
   $("#quick").value="";
   btn.disabled=false; btn.textContent="Сохранить";
-  toast(`«${rec.title}» → ${VERD[v]}`);
+  if(old && (was===v || v==="later")){
+    // Уже в списке. Просто «посоветовали» не переносит из «Понравилось» и других разделов назад в «позже».
+    toast(`«${old.title}» уже есть в списке: «${SEC_NAME[was]||VERD[was]}»`, 4000);
+    return;
+  }
+  setVerdict(rec, v);
+  if(old) toast(`«${old.title}» уже был в «${SEC_NAME[was]||""}», перенёс в «${SEC_NAME[v]}»`, 4000);
+  else toast(`«${rec.title}» → ${VERD[v]}`);
 }
 // «+» при пустом поле — ставит курсор в поле (как будто нажали на поле); с текстом — добавляет.
 $("#addBtn").onclick=()=>{ if(!$("#quick").value.trim()){ $("#quick").focus(); return; } quickAdd(); };
