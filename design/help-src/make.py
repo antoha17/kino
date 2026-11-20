@@ -144,9 +144,9 @@ def build(k):
     p2 = f'''
   <div class="kicker">Шаг 1</div><h2>Начало</h2>
   <div class="grid3 sec" style="margin-top:5mm">
-    <div class="card feat" style="display:block"><div class="ico">{ic("phone")}</div><h3 style="margin-top:3mm">Значок на рабочий стол</h3><p class="mut" style="font-size:9.3pt;line-height:1.5;margin-top:1.5mm">iPhone: Safari → «Поделиться» → «На экран „Домой“». Android: откройте ссылку в браузере → меню ⋮ или ≡ → «Установить приложение».</p></div>
     <div class="card feat" style="display:block"><div class="ico">{ic("key")}</div><h3 style="margin-top:3mm">Создайте аккаунт</h3><p class="mut" style="font-size:9.3pt;line-height:1.5;margin-top:1.5mm">Откройте ссылку-приглашение, укажите почту и придумайте пароль. Список хранится в аккаунте и одинаков на телефоне и компьютере.</p></div>
     <div class="card feat" style="display:block"><div class="ico">{ic("target")}</div><h3 style="margin-top:3mm">Расскажите о вкусе</h3><p class="mut" style="font-size:9.3pt;line-height:1.5;margin-top:1.5mm">При первом входе приложение задаст {len(a["q"])} коротких вопросов. Из ответов ИИ составит описание вашего вкуса, а поправить его можно в любой момент.</p></div>
+    <div class="card feat" style="display:block"><div class="ico">{ic("phone")}</div><h3 style="margin-top:3mm">Значок на рабочий стол</h3><p class="mut" style="font-size:9.3pt;line-height:1.5;margin-top:1.5mm">После вопросов. iPhone: Safari → «Поделиться» → «На экран „Домой“», потом войдите в приложении. Android: меню ⋮ или ≡ → «Установить приложение».</p></div>
   </div>
 
   <div class="kicker" style="margin-top:6mm">Шаг 2</div><h2>Вкладка «Подобрать»</h2>
